@@ -127,7 +127,7 @@ def move_directory(
         shutil.move(str(source_path), str(dest_path))
         logger.debug(f"Successfully moved: {source_path} -> {dest_path}")
         return True
-    except Exception as e:
+    except (OSError, shutil.Error) as e:
         logger.error(f"Error moving directory from {source_path} to {dest_path}: {e}")
         return False
 
@@ -252,7 +252,7 @@ def move_calibration_files(
             ap_common.move_file(str(cal_path), str(dest_file), debug, dry_run)
             moved_count += 1
             logger.debug(f"Moved calibration file: {cal_file} -> {dest_file}")
-        except Exception as e:
+        except OSError as e:
             logger.error(f"Failed to move calibration file {cal_file}: {e}")
 
     return moved_count
@@ -322,14 +322,14 @@ def process_light_directories(
             continue
 
         if debug:
-            print(
+            logger.debug(
                 f"  Lights: {status['light_count']}, "
                 f"Darks: {status['dark_count']}, "
                 f"Flats: {status['flat_count']}, "
                 f"Bias: {status['bias_count']}"
             )
             if status["needs_bias"]:
-                print("  Note: Bias required (dark exposure != light exposure)")
+                logger.debug("  Note: Bias required (dark exposure != light exposure)")
 
         if not status["is_complete"]:
             # Build detailed message about missing calibration
@@ -344,13 +344,13 @@ def process_light_directories(
             missing_str = ", ".join(missing)
             logger.warning(f"Skipping {relative_path}: missing {missing_str}")
 
-            # Track specific skip reason
-            reason = status["reason"]
-            if "bias" in reason.lower():
+            # Track specific skip reason using structured code
+            skip_code = status.get("skip_reason_code", "")
+            if skip_code == config.SKIP_REASON_NO_BIAS:
                 results["skipped_no_bias"] += 1
-            elif "flat" in reason.lower():
+            elif skip_code == config.SKIP_REASON_NO_FLATS:
                 results["skipped_no_flats"] += 1
-            elif "dark" in reason.lower():
+            elif skip_code == config.SKIP_REASON_NO_DARKS:
                 results["skipped_no_darks"] += 1
             continue
 

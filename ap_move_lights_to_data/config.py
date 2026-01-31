@@ -23,6 +23,13 @@ TYPE_DARK = "DARK"
 TYPE_FLAT = "FLAT"
 TYPE_BIAS = "BIAS"
 
+# Skip reason codes for structured error handling
+SKIP_REASON_NONE = ""
+SKIP_REASON_NO_LIGHTS = "no_lights"
+SKIP_REASON_NO_DARKS = "no_darks"
+SKIP_REASON_NO_FLATS = "no_flats"
+SKIP_REASON_NO_BIAS = "no_bias"
+
 # Required keywords for matching lights to calibration frames
 LIGHT_REQUIRED_KEYWORDS = [
     KEYWORD_TYPE,

@@ -177,7 +177,7 @@ def find_matching_darks(
             matching.append(filepath)
             # Check if exposure matches
             dark_exposure = dark_meta.get(config.KEYWORD_EXPOSURESECONDS)
-            if light_exposure and dark_exposure:
+            if light_exposure is not None and dark_exposure is not None:
                 try:
                     if float(light_exposure) == float(dark_exposure):
                         exposure_matches = True
@@ -315,6 +315,7 @@ def check_calibration_status(
         "bias_count": 0,
         "light_metadata": None,
         "reason": "",
+        "skip_reason_code": config.SKIP_REASON_NONE,
         "matched_darks": [],
         "matched_flats": [],
         "matched_bias": [],
@@ -336,6 +337,7 @@ def check_calibration_status(
 
     if not lights:
         result["reason"] = "No light frames found"
+        result["skip_reason_code"] = config.SKIP_REASON_NO_LIGHTS
         return result
 
     # Get representative light metadata
@@ -389,6 +391,13 @@ def check_calibration_status(
     if missing:
         result["is_complete"] = False
         result["reason"] = f"Missing {', '.join(missing)}"
+        # Set structured skip reason code (priority: bias > flats > darks)
+        if result["needs_bias"] and not result["has_bias"]:
+            result["skip_reason_code"] = config.SKIP_REASON_NO_BIAS
+        elif not result["has_flats"]:
+            result["skip_reason_code"] = config.SKIP_REASON_NO_FLATS
+        elif not result["has_darks"]:
+            result["skip_reason_code"] = config.SKIP_REASON_NO_DARKS
     else:
         result["is_complete"] = True
 
