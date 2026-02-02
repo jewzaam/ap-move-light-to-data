@@ -426,7 +426,7 @@ def main() -> int:
     )
 
     parser.add_argument(
-        "--dry-run",
+        "--dryrun",
         "-n",
         action="store_true",
         help="Show what would be done without actually moving files",
@@ -486,14 +486,14 @@ def main() -> int:
     print(f"Source directory: {args.source_dir}")
     print(f"Destination directory: {args.dest_dir}")
 
-    if args.dry_run:
+    if args.dryrun:
         print("\n*** DRY RUN - No files will be moved ***\n")
 
     results = process_light_directories(
         args.source_dir,
         args.dest_dir,
         args.debug,
-        args.dry_run,
+        args.dryrun,
         args.quiet,
     )
 
