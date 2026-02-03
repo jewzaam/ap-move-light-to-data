@@ -39,7 +39,7 @@ python -m ap_move_light_to_data <source_dir> <dest_dir> [options]
 ### Options
 
 - `-d, --debug`: Enable debug output
-- `-n, --dry-run`: Show what would be done without actually moving files
+- `-n, --dryrun`: Show what would be done without actually moving files
 
 ### Example
 
@@ -53,7 +53,7 @@ python -m ap_move_light_to_data \
 python -m ap_move_light_to_data \
     "10_Blink" \
     "20_Data" \
-    --dry-run
+    --dryrun
 ```
 
 ## Calibration Requirements
