@@ -469,6 +469,15 @@ def print_summary(results: dict) -> None:
         f"{plural(results['date_count'], 'date')}, "
         f"{plural(results['filter_count'], 'filter')})"
     )
+
+    # CRITICAL: Output order MUST be: Biases, Darks, Flats
+    # CRITICAL: Bias MUST ALWAYS be shown (even if 0 of 0)
+    # This order has regressed multiple times - DO NOT CHANGE without updating tests
+    # See test_print_summary_output_order() in tests/test_move_lights_to_data.py
+    print(
+        f"Biases: {dir_count - results['skipped_no_bias']} of {dir_count} | "
+        f"{status_indicator(dir_count - results['skipped_no_bias'], dir_count)}"
+    )
     print(
         f"Darks:  {dir_count - results['skipped_no_darks']} of {dir_count} | "
         f"{status_indicator(dir_count - results['skipped_no_darks'], dir_count)}"
@@ -477,11 +486,6 @@ def print_summary(results: dict) -> None:
         f"Flats:  {dir_count - results['skipped_no_flats']} of {dir_count} | "
         f"{status_indicator(dir_count - results['skipped_no_flats'], dir_count)}"
     )
-    if results["skipped_no_bias"] > 0:
-        print(
-            f"Biases: {dir_count - results['skipped_no_bias']} of {dir_count} | "
-            f"{status_indicator(dir_count - results['skipped_no_bias'], dir_count)}"
-        )
     if results["errors"] > 0:
         print(f"Errors: {results['errors']}")
     print(f"{'='*70}\n")
