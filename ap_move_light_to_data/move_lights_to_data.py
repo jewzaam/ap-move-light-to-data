@@ -13,7 +13,11 @@ from typing import List
 
 import ap_common
 from ap_common import setup_logging, progress_iter
-from ap_common.constants import TYPE_LIGHT
+from ap_common.constants import (
+    TYPE_LIGHT,
+    NORMALIZED_HEADER_DATE,
+    NORMALIZED_HEADER_FILTER,
+)
 
 from . import config
 from .matching import check_calibration_status
@@ -279,6 +283,10 @@ def process_light_directories(
         Dict with counts: moved, skipped (by reason), errors
     """
     results = {
+        "dir_count": 0,
+        "target_count": 0,
+        "date_count": 0,
+        "filter_count": 0,
         "moved": 0,
         "skipped_no_lights": 0,
         "skipped_no_darks": 0,
@@ -300,6 +308,37 @@ def process_light_directories(
         return results
 
     logger.debug(f"Found {len(image_dirs)} directories to check")
+
+    # Extract organizational metrics from light frames
+    targets = set()
+    dates = set()
+    filters = set()
+
+    for image_dir in image_dirs:
+        status = check_calibration_status(image_dir, source_dir)
+        # Extract target from path (source/TARGET/DATE/FILTER_EXP_SETTEMP/)
+        try:
+            rel_path = Path(image_dir).relative_to(source_path)
+            if len(rel_path.parts) > 0:
+                targets.add(rel_path.parts[0])
+        except (ValueError, IndexError):
+            pass
+
+        # Extract dates and filters from light frame metadata only
+        for frame in status.get("lights", []):
+            if isinstance(frame, dict):
+                if NORMALIZED_HEADER_DATE in frame:
+                    dates.add(frame[NORMALIZED_HEADER_DATE])
+                if NORMALIZED_HEADER_FILTER in frame:
+                    filters.add(frame[NORMALIZED_HEADER_FILTER])
+
+    results["dir_count"] = len(image_dirs)
+    results["target_count"] = len(targets)
+    results["date_count"] = len(dates)
+    results["filter_count"] = len(filters)
+
+    # Collect warnings to print after progress bar
+    warnings = []
 
     for image_dir in progress_iter(
         image_dirs, desc="Processing directories", enabled=not quiet
@@ -334,7 +373,7 @@ def process_light_directories(
             # Use the missing list from calibration status instead of rebuilding
             missing = status.get("missing", [])
             missing_str = ", ".join(missing)
-            logger.warning(f"Skipping {relative_path}: missing {missing_str}")
+            warnings.append(f"Skipping {relative_path}: missing {missing_str}")
 
             # Track specific skip reason using structured code
             skip_code = status.get("skip_reason_code", "")
@@ -383,6 +422,10 @@ def process_light_directories(
             results["errors"] += 1
             logger.error(f"Failed to move {relative_path}")
 
+    # Print collected warnings after progress bar completes
+    for warning in warnings:
+        logger.warning(warning)
+
     # Cleanup empty directories in source
     if not dry_run and results["moved"] > 0:
         logger.debug(f"Cleaning up empty directories in {source_path}")
@@ -394,6 +437,65 @@ def process_light_directories(
         f"errors={results['errors']}"
     )
     return results
+
+
+def print_summary(results: dict) -> None:
+    """
+    Print summary of processing results.
+
+    Args:
+        results: Results dictionary from process_light_directories
+    """
+
+    def plural(count: int, singular: str) -> str:
+        """Format count with singular/plural form."""
+        return f"{count} {singular}{'s' if count != 1 else ''}"
+
+    def status_indicator(present: int, needed: int) -> str:
+        """Return status indicator based on present vs needed."""
+        return "ok" if present >= needed else "MISSING!"
+
+    print(f"\n{'='*70}")
+    print("Summary")
+    print(f"{'='*70}")
+
+    # Calculate totals
+    dir_count = results["dir_count"]
+    total_skipped = (
+        results["skipped_no_lights"]
+        + results["skipped_no_darks"]
+        + results["skipped_no_flats"]
+        + results["skipped_no_bias"]
+    )
+    # Directories that had all calibration and could be moved
+    could_move = dir_count - total_skipped
+
+    print(
+        f"Directories: {dir_count} "
+        f"({plural(results['target_count'], 'target')}, "
+        f"{plural(results['date_count'], 'date')}, "
+        f"{plural(results['filter_count'], 'filter')})"
+    )
+    print(
+        f"Moved:  {results['moved']} of {could_move} | "
+        f"{status_indicator(results['moved'], could_move)}"
+    )
+    print(
+        f"Darks:  {dir_count - results['skipped_no_darks']} of {dir_count} | "
+        f"{status_indicator(dir_count - results['skipped_no_darks'], dir_count)}"
+    )
+    print(
+        f"Flats:  {dir_count - results['skipped_no_flats']} of {dir_count} | "
+        f"{status_indicator(dir_count - results['skipped_no_flats'], dir_count)}"
+    )
+    if results["skipped_no_bias"] > 0:
+        print(
+            f"Biases: {dir_count - results['skipped_no_bias']} of {dir_count} | "
+            f"{status_indicator(dir_count - results['skipped_no_bias'], dir_count)}"
+        )
+    if results["errors"] > 0:
+        print(f"Errors: {results['errors']}")
+    print(f"{'='*70}\n")
 
 
 def main() -> int:
@@ -500,15 +602,8 @@ def main() -> int:
     )
 
     # Print summary
-    print("\n" + "=" * 50)
-    print("Summary:")
-    print(f"  Moved:              {results['moved']}")
-    print(f"  Skipped (no lights):{results['skipped_no_lights']}")
-    print(f"  Skipped (no darks): {results['skipped_no_darks']}")
-    print(f"  Skipped (no flats): {results['skipped_no_flats']}")
-    print(f"  Skipped (no bias):  {results['skipped_no_bias']}")
-    print(f"  Errors:             {results['errors']}")
-    print("=" * 50)
+    if not args.quiet:
+        print_summary(results)
 
     # Return 1 if there were any errors during processing
     return 1 if results["errors"] > 0 else 0

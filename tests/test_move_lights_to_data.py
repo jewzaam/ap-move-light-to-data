@@ -706,6 +706,10 @@ class TestMainCLI:
         dest = tmp_path / "dest"
 
         mock_process.return_value = {
+            "dir_count": 5,
+            "target_count": 2,
+            "date_count": 3,
+            "filter_count": 4,
             "moved": 5,
             "skipped_no_lights": 0,
             "skipped_no_darks": 0,
@@ -730,6 +734,10 @@ class TestMainCLI:
         dest = tmp_path / "dest"
 
         mock_process.return_value = {
+            "dir_count": 5,
+            "target_count": 2,
+            "date_count": 3,
+            "filter_count": 4,
             "moved": 3,
             "skipped_no_lights": 0,
             "skipped_no_darks": 0,
