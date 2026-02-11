@@ -169,10 +169,10 @@ def find_matching_darks(
         for key in config.DARK_MATCH_KEYWORDS:
             light_val = light_metadata.get(key)
             dark_val = dark_meta.get(key)
-            if light_val is not None and dark_val is not None:
-                if str(light_val).lower() != str(dark_val).lower():
-                    matches = False
-                    break
+            # Strict matching: empty string only matches empty string
+            if str(light_val).lower() != str(dark_val).lower():
+                matches = False
+                break
 
         if matches:
             matching.append(filepath)
@@ -223,10 +223,10 @@ def find_matching_flats(
         for key in config.FLAT_MATCH_KEYWORDS:
             light_val = light_metadata.get(key)
             flat_val = flat_meta.get(key)
-            if light_val is not None and flat_val is not None:
-                if str(light_val).lower() != str(flat_val).lower():
-                    matches = False
-                    break
+            # Strict matching: empty string only matches empty string
+            if str(light_val).lower() != str(flat_val).lower():
+                matches = False
+                break
 
         if matches:
             matching.append(filepath)
@@ -258,10 +258,10 @@ def find_matching_bias(
         for key in config.DARK_MATCH_KEYWORDS:
             light_val = light_metadata.get(key)
             bias_val = bias_meta.get(key)
-            if light_val is not None and bias_val is not None:
-                if str(light_val).lower() != str(bias_val).lower():
-                    matches = False
-                    break
+            # Strict matching: empty string only matches empty string
+            if str(light_val).lower() != str(bias_val).lower():
+                matches = False
+                break
 
         if matches:
             matching.append(filepath)

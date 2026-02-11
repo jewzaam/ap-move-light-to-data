@@ -102,6 +102,33 @@ class TestFindMatchingDarks:
 
         assert len(result) == 0
 
+    def test_none_values_normalized_strict_matching(self):
+        """Verify None values are normalized to empty string for strict matching."""
+        light_metadata = {
+            config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+            config.NORMALIZED_HEADER_GAIN: None,  # No gain
+            config.NORMALIZED_HEADER_OFFSET: None,  # No offset
+        }
+
+        dark_frames = {
+            "/path/dark1.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_GAIN: None,  # Matches (both normalized to "")
+                config.NORMALIZED_HEADER_OFFSET: None,  # Matches (both normalized to "")
+            },
+            "/path/dark2.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_GAIN: "100",  # Different (should not match)
+                config.NORMALIZED_HEADER_OFFSET: None,
+            },
+        }
+
+        result, _ = matching.find_matching_darks(light_metadata, dark_frames)
+
+        # Should only match dark with matching None values (normalized to "")
+        assert len(result) == 1
+        assert "/path/dark1.fits" in result
+
 
 class TestFindMatchingFlats:
     """Tests for find_matching_flats function."""
@@ -129,6 +156,53 @@ class TestFindMatchingFlats:
         assert len(result) == 1
         assert "/path/flat1.fits" in result
 
+    def test_none_filter_normalized_strict_matching(self):
+        """Verify None filter is normalized to empty string for strict matching."""
+        light_metadata = {
+            config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+            config.NORMALIZED_HEADER_FILTER: None,  # No filter
+        }
+
+        flat_frames = {
+            "/path/flat1.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_FILTER: None,  # Matches (both normalized to "")
+            },
+            "/path/flat2.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_FILTER: "Ha",  # Different filter (should not match)
+            },
+        }
+
+        result = matching.find_matching_flats(light_metadata, flat_frames)
+
+        # Should only match flat with filter=None (normalized to "")
+        assert len(result) == 1
+        assert "/path/flat1.fits" in result
+
+    def test_none_filter_does_not_match_specific_filter(self):
+        """Verify None filter does NOT match flats with specific filters (strict matching)."""
+        light_metadata = {
+            config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+            config.NORMALIZED_HEADER_FILTER: None,  # No filter
+        }
+
+        flat_frames = {
+            "/path/flat_ha.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_FILTER: "Ha",
+            },
+            "/path/flat_oiii.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_FILTER: "OIII",
+            },
+        }
+
+        result = matching.find_matching_flats(light_metadata, flat_frames)
+
+        # None filter should NOT wildcard match - should match nothing
+        assert len(result) == 0
+
 
 class TestFindMatchingBias:
     """Tests for find_matching_bias function."""
@@ -155,6 +229,33 @@ class TestFindMatchingBias:
 
         result = matching.find_matching_bias(light_metadata, bias_frames)
 
+        assert len(result) == 1
+        assert "/path/bias1.fits" in result
+
+    def test_none_values_strict_matching(self):
+        """Verify None values are normalized to empty string for strict matching."""
+        light_metadata = {
+            config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+            config.NORMALIZED_HEADER_SETTEMP: None,  # No settemp
+            config.NORMALIZED_HEADER_GAIN: None,  # No gain
+        }
+
+        bias_frames = {
+            "/path/bias1.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_SETTEMP: None,  # Matches (both normalized to "")
+                config.NORMALIZED_HEADER_GAIN: None,  # Matches (both normalized to "")
+            },
+            "/path/bias2.fits": {
+                config.NORMALIZED_HEADER_CAMERA: "ASI2600MM",
+                config.NORMALIZED_HEADER_SETTEMP: "-10",  # Different (should not match)
+                config.NORMALIZED_HEADER_GAIN: None,
+            },
+        }
+
+        result = matching.find_matching_bias(light_metadata, bias_frames)
+
+        # Should only match bias with matching None values (normalized to "")
         assert len(result) == 1
         assert "/path/bias1.fits" in result
 
