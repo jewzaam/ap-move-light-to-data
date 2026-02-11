@@ -753,3 +753,145 @@ class TestMainCLI:
         exit_code = move_lights_to_data.main()
 
         assert exit_code == 1
+
+
+class TestPrintSummary:
+    """Tests for print_summary function.
+
+    CRITICAL: These tests enforce the required output order and format.
+    The output order has regressed multiple times and must be protected.
+    """
+
+    def test_output_order_is_bias_dark_flat(self, capsys):
+        """Verify output order is ALWAYS: Biases, Darks, Flats.
+
+        CRITICAL: This order must not change. Update this test only if
+        there is an explicit business requirement to change the order.
+        """
+        results = {
+            "dir_count": 10,
+            "target_count": 2,
+            "date_count": 3,
+            "filter_count": 4,
+            "moved": 5,
+            "skipped_no_lights": 0,
+            "skipped_no_darks": 2,
+            "skipped_no_flats": 3,
+            "skipped_no_bias": 4,
+            "errors": 0,
+        }
+
+        move_lights_to_data.print_summary(results)
+
+        captured = capsys.readouterr()
+        output_lines = captured.out.split("\n")
+
+        # Find the calibration frame lines (skip header and directory summary)
+        calibration_lines = [
+            line
+            for line in output_lines
+            if any(frame in line for frame in ["Biases:", "Darks:", "Flats:"])
+        ]
+
+        # CRITICAL: Verify order is Biases, Darks, Flats
+        assert (
+            len(calibration_lines) == 3
+        ), f"Expected 3 calibration lines, got {len(calibration_lines)}"
+        assert (
+            "Biases:" in calibration_lines[0]
+        ), f"First line should be Biases, got: {calibration_lines[0]}"
+        assert (
+            "Darks:" in calibration_lines[1]
+        ), f"Second line should be Darks, got: {calibration_lines[1]}"
+        assert (
+            "Flats:" in calibration_lines[2]
+        ), f"Third line should be Flats, got: {calibration_lines[2]}"
+
+    def test_bias_always_shown_even_when_zero(self, capsys):
+        """Verify bias is ALWAYS shown, even when 0 of 0.
+
+        CRITICAL: Bias must always appear in output regardless of whether
+        bias frames are needed or present.
+        """
+        # Test case: No bias needed (skipped_no_bias = 0 means no directories skipped for bias)
+        results = {
+            "dir_count": 5,
+            "target_count": 1,
+            "date_count": 1,
+            "filter_count": 1,
+            "moved": 5,
+            "skipped_no_lights": 0,
+            "skipped_no_darks": 0,
+            "skipped_no_flats": 0,
+            "skipped_no_bias": 0,  # No directories skipped for bias = all have bias or none need it
+            "errors": 0,
+        }
+
+        move_lights_to_data.print_summary(results)
+
+        captured = capsys.readouterr()
+
+        # CRITICAL: Bias line must be present
+        assert "Biases:" in captured.out, "Bias line must always be present in output"
+        assert (
+            "5 of 5" in captured.out
+        ), "Should show 5 of 5 when no directories skipped"
+
+    def test_bias_shown_when_all_directories_missing_bias(self, capsys):
+        """Verify bias is shown when all directories are missing bias (0 of N)."""
+        results = {
+            "dir_count": 10,
+            "target_count": 2,
+            "date_count": 3,
+            "filter_count": 4,
+            "moved": 0,
+            "skipped_no_lights": 0,
+            "skipped_no_darks": 0,
+            "skipped_no_flats": 0,
+            "skipped_no_bias": 10,  # All directories skipped for missing bias
+            "errors": 0,
+        }
+
+        move_lights_to_data.print_summary(results)
+
+        captured = capsys.readouterr()
+
+        # CRITICAL: Bias line must be present showing 0 of 10
+        assert (
+            "Biases:" in captured.out
+        ), "Bias line must be present even when all missing"
+        assert (
+            "0 of 10" in captured.out
+        ), "Should show 0 of 10 when all directories missing bias"
+
+    def test_order_consistent_regardless_of_values(self, capsys):
+        """Verify output order remains Biases, Darks, Flats regardless of which have 0."""
+        # All frames missing
+        results = {
+            "dir_count": 10,
+            "target_count": 1,
+            "date_count": 1,
+            "filter_count": 1,
+            "moved": 0,
+            "skipped_no_lights": 0,
+            "skipped_no_darks": 10,
+            "skipped_no_flats": 10,
+            "skipped_no_bias": 10,
+            "errors": 0,
+        }
+
+        move_lights_to_data.print_summary(results)
+
+        captured = capsys.readouterr()
+        output_lines = captured.out.split("\n")
+
+        calibration_lines = [
+            line
+            for line in output_lines
+            if any(frame in line for frame in ["Biases:", "Darks:", "Flats:"])
+        ]
+
+        # Order must still be Biases, Darks, Flats
+        assert "Biases:" in calibration_lines[0]
+        assert "Darks:" in calibration_lines[1]
+        assert "Flats:" in calibration_lines[2]
