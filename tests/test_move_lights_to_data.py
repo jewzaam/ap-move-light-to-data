@@ -778,10 +778,11 @@ class TestPrintSummary:
             "skipped_no_darks": 2,
             "skipped_no_flats": 3,
             "skipped_no_bias": 4,
+            "biases_needed": 6,  # 6 directories need bias (4 missing, 2 present)
             "errors": 0,
         }
 
-        move_lights_to_data.print_summary(results)
+        move_lights_to_data.print_summary(results, allow_bias=True)
 
         captured = capsys.readouterr()
         output_lines = captured.out.split("\n")
@@ -813,7 +814,7 @@ class TestPrintSummary:
         CRITICAL: Bias must always appear in output regardless of whether
         bias frames are needed or present.
         """
-        # Test case: No bias needed (skipped_no_bias = 0 means no directories skipped for bias)
+        # Test case: All directories need bias and all have it
         results = {
             "dir_count": 5,
             "target_count": 1,
@@ -823,11 +824,12 @@ class TestPrintSummary:
             "skipped_no_lights": 0,
             "skipped_no_darks": 0,
             "skipped_no_flats": 0,
-            "skipped_no_bias": 0,  # No directories skipped for bias = all have bias or none need it
+            "skipped_no_bias": 0,  # No directories skipped for bias (all have it)
+            "biases_needed": 5,  # All 5 directories need bias
             "errors": 0,
         }
 
-        move_lights_to_data.print_summary(results)
+        move_lights_to_data.print_summary(results, allow_bias=True)
 
         captured = capsys.readouterr()
 
@@ -835,7 +837,7 @@ class TestPrintSummary:
         assert "Biases:" in captured.out, "Bias line must always be present in output"
         assert (
             "5 of 5" in captured.out
-        ), "Should show 5 of 5 when no directories skipped"
+        ), "Should show 5 of 5 when all 5 directories need and have bias"
 
     def test_bias_shown_when_all_directories_missing_bias(self, capsys):
         """Verify bias is shown when all directories are missing bias (0 of N)."""
@@ -849,10 +851,11 @@ class TestPrintSummary:
             "skipped_no_darks": 0,
             "skipped_no_flats": 0,
             "skipped_no_bias": 10,  # All directories skipped for missing bias
+            "biases_needed": 10,  # All 10 directories need bias
             "errors": 0,
         }
 
-        move_lights_to_data.print_summary(results)
+        move_lights_to_data.print_summary(results, allow_bias=True)
 
         captured = capsys.readouterr()
 
@@ -862,7 +865,7 @@ class TestPrintSummary:
         ), "Bias line must be present even when all missing"
         assert (
             "0 of 10" in captured.out
-        ), "Should show 0 of 10 when all directories missing bias"
+        ), "Should show 0 of 10 when all 10 directories need bias but all missing"
 
     def test_order_consistent_regardless_of_values(self, capsys):
         """Verify output order remains Biases, Darks, Flats regardless of which have 0."""
@@ -877,10 +880,11 @@ class TestPrintSummary:
             "skipped_no_darks": 10,
             "skipped_no_flats": 10,
             "skipped_no_bias": 10,
+            "biases_needed": 10,  # All 10 directories need bias
             "errors": 0,
         }
 
-        move_lights_to_data.print_summary(results)
+        move_lights_to_data.print_summary(results, allow_bias=True)
 
         captured = capsys.readouterr()
         output_lines = captured.out.split("\n")
@@ -895,3 +899,64 @@ class TestPrintSummary:
         assert "Biases:" in calibration_lines[0]
         assert "Darks:" in calibration_lines[1]
         assert "Flats:" in calibration_lines[2]
+
+    def test_bias_shows_zero_when_allow_bias_false(self, capsys):
+        """Verify bias shows 0 of 0 when allow_bias=False.
+
+        When bias checking is disabled (allow_bias=False), the output should
+        show "0 of 0" to indicate bias is not being checked, rather than
+        showing misleading counts that suggest bias is present.
+        """
+        results = {
+            "dir_count": 9,
+            "target_count": 2,
+            "date_count": 3,
+            "filter_count": 4,
+            "moved": 5,
+            "skipped_no_lights": 0,
+            "skipped_no_darks": 1,
+            "skipped_no_flats": 1,
+            "skipped_no_bias": 0,  # Never skipped for bias when allow_bias=False
+            "biases_needed": 0,  # No bias counting when allow_bias=False
+            "errors": 0,
+        }
+
+        move_lights_to_data.print_summary(results, allow_bias=False)
+
+        captured = capsys.readouterr()
+
+        # When allow_bias=False, bias is not checked, so show "0 of 0"
+        assert "Biases:" in captured.out, "Bias line must always be present"
+        assert (
+            "Biases: 0 of 0" in captured.out
+        ), "Should show 0 of 0 when bias checking disabled"
+
+    def test_bias_shows_counts_when_allow_bias_true(self, capsys):
+        """Verify bias shows actual counts when allow_bias=True.
+
+        When bias checking is enabled (allow_bias=True), the output should
+        show actual counts: only directories that need bias (no exact dark match).
+        """
+        results = {
+            "dir_count": 9,
+            "target_count": 2,
+            "date_count": 3,
+            "filter_count": 4,
+            "moved": 5,
+            "skipped_no_lights": 0,
+            "skipped_no_darks": 1,
+            "skipped_no_flats": 1,
+            "skipped_no_bias": 1,  # 1 directory skipped for missing bias
+            "biases_needed": 1,  # Only 1 directory needs bias (no exact dark match)
+            "errors": 0,
+        }
+
+        move_lights_to_data.print_summary(results, allow_bias=True)
+
+        captured = capsys.readouterr()
+
+        # When allow_bias=True, biases_needed=1, skipped_no_bias=1 → 0 of 1
+        assert "Biases:" in captured.out, "Bias line must always be present"
+        assert (
+            "Biases: 0 of 1" in captured.out
+        ), "Should show 0 of 1 when 1 directory needs bias but it's missing"

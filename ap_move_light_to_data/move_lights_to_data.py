@@ -293,6 +293,7 @@ def process_light_directories(
         "skipped_no_darks": 0,
         "skipped_no_flats": 0,
         "skipped_no_bias": 0,
+        "biases_needed": 0,  # Number of directories that require bias frames
         "errors": 0,
     }
 
@@ -369,6 +370,7 @@ def process_light_directories(
         )
         if status["needs_bias"]:
             logger.debug("Note: Bias required (dark exposure != light exposure)")
+            results["biases_needed"] += 1
 
         if not status["is_complete"]:
             # Use the missing list from calibration status instead of rebuilding
@@ -440,12 +442,13 @@ def process_light_directories(
     return results
 
 
-def print_summary(results: dict) -> None:
+def print_summary(results: dict, allow_bias: bool = False) -> None:
     """
     Print summary of processing results.
 
     Args:
         results: Results dictionary from process_light_directories
+        allow_bias: Whether bias frame checking is enabled
     """
 
     def plural(count: int, singular: str) -> str:
@@ -474,9 +477,21 @@ def print_summary(results: dict) -> None:
     # CRITICAL: Bias MUST ALWAYS be shown (even if 0 of 0)
     # This order has regressed multiple times - DO NOT CHANGE without updating tests
     # See test_print_summary_output_order() in tests/test_move_lights_to_data.py
+
+    # When allow_bias=False, bias is not checked, so show "0 of 0"
+    # When allow_bias=True, show count of directories that need bias
+    # - biases_needed = directories where needs_bias=True (no exact dark match)
+    # - biases_present = biases_needed - skipped_no_bias (needed and have bias)
+    if allow_bias:
+        biases_needed = results["biases_needed"]
+        biases_present = biases_needed - results["skipped_no_bias"]
+    else:
+        biases_present = 0
+        biases_needed = 0
+
     print(
-        f"Biases: {dir_count - results['skipped_no_bias']} of {dir_count} | "
-        f"{status_indicator(dir_count - results['skipped_no_bias'], dir_count)}"
+        f"Biases: {biases_present} of {biases_needed} | "
+        f"{status_indicator(biases_present, biases_needed)}"
     )
     print(
         f"Darks:  {dir_count - results['skipped_no_darks']} of {dir_count} | "
@@ -604,7 +619,7 @@ def main() -> int:
 
     # Print summary
     if not args.quiet:
-        print_summary(results)
+        print_summary(results, allow_bias=args.allow_bias)
 
     # Return 1 if there were any errors during processing
     return 1 if results["errors"] > 0 else 0
