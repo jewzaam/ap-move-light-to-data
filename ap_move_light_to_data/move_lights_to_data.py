@@ -24,6 +24,9 @@ from .matching import (
     is_file_inside_tree,
 )
 
+EXIT_SUCCESS = 0
+EXIT_ERROR = 1
+
 logger = logging.getLogger("ap_move_light_to_data.move_lights_to_data")
 
 # Set default description width for aligned progress bars
@@ -32,7 +35,9 @@ ProgressTracker.set_default_desc_width(20)
 
 def build_search_dirs(directory: str, source_dir: str) -> List[str]:
     """
-    Build list of directories to search for calibration (current + parents up to source).
+    Build list of directories to search for calibration.
+
+    Searches current directory and parents up to source.
 
     Args:
         directory: Starting directory
@@ -172,7 +177,8 @@ def filter_by_pattern(light_dirs: List[str], path_pattern: Optional[str]) -> Lis
     if path_pattern:
         filtered = [d for d in light_dirs if re.search(path_pattern, d)]
         logger.debug(
-            f"Pattern '{path_pattern}' matched {len(filtered)} of {len(light_dirs)} directories"
+            f"Pattern '{path_pattern}' matched "
+            f"{len(filtered)} of {len(light_dirs)} directories"
         )
         return filtered
     return light_dirs
@@ -476,7 +482,8 @@ def process_light_directories(
             recursive=True,
             # Request union of all properties needed for any frame type matching
             # This ensures ALL files get enriched with actual FITS/XISF headers
-            # (not just filename metadata), even if the filename contains some properties
+            # (not just filename metadata), even if the filename
+            # contains some properties
             required_properties=config.ALL_REQUIRED_KEYWORDS,
             debug=debug,
             printStatus=not quiet,
@@ -551,7 +558,8 @@ def process_light_directories(
         all_files = collect_all_files_in_groups(movable_groups_ordered, dest_path)
 
         logger.debug(
-            f"Copying {len(all_files):,} files across {len(movable_groups):,} directories..."
+            f"Copying {len(all_files):,} files "
+            f"across {len(movable_groups):,} directories..."
         )
 
         # Copy with file-level progress
@@ -617,7 +625,8 @@ def process_light_directories(
         all_files = collect_all_files_in_groups(movable_groups_ordered, dest_path)
         results["moved"] = len(movable_groups)
         logger.info(
-            f"DRY RUN: Would move {len(all_files):,} files across {len(movable_groups):,} directories"
+            f"DRY RUN: Would move {len(all_files):,} files "
+            f"across {len(movable_groups):,} directories"
         )
 
     # Step 6: REPORT incomplete directories
@@ -684,7 +693,10 @@ def print_summary(results: dict, allow_bias: bool = False) -> None:
 def main() -> int:
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
-        description="Move complete directory groups containing light frames and calibration atomically."
+        description=(
+            "Move complete directory groups containing "
+            "light frames and calibration atomically."
+        )
     )
 
     parser.add_argument("source_dir", help="source directory containing lights")
@@ -707,7 +719,10 @@ def main() -> int:
         "--path-pattern",
         type=str,
         default=config.DEFAULT_PATH_PATTERN,
-        help=f'Regex pattern to filter paths (default: "{config.DEFAULT_PATH_PATTERN}")',
+        help=(
+            "Regex pattern to filter paths "
+            f'(default: "{config.DEFAULT_PATH_PATTERN}")'
+        ),
     )
 
     args = parser.parse_args()
@@ -719,15 +734,15 @@ def main() -> int:
     source_path = Path(ap_common.replace_env_vars(args.source_dir))
     if not source_path.exists():
         print(f"ERROR: Source directory does not exist: {source_path}")
-        return 2
+        return EXIT_ERROR
     if not source_path.is_dir():
         print(f"ERROR: Source path is not a directory: {source_path}")
-        return 2
+        return EXIT_ERROR
 
     dest_path = Path(ap_common.replace_env_vars(args.dest_dir))
     if dest_path.exists() and not dest_path.is_dir():
         print(f"ERROR: Destination exists but is not a directory: {dest_path}")
-        return 2
+        return EXIT_ERROR
 
     print(f"Source directory: {args.source_dir}")
     print(f"Destination directory: {args.dest_dir}")
@@ -748,7 +763,7 @@ def main() -> int:
     if not args.quiet:
         print_summary(results, allow_bias=args.allow_bias)
 
-    return 1 if results["errors"] > 0 else 0
+    return EXIT_ERROR if results["errors"] > 0 else EXIT_SUCCESS
 
 
 if __name__ == "__main__":

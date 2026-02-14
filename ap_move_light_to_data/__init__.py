@@ -39,6 +39,8 @@ from .matching import (
 )
 
 from .move_lights_to_data import (
+    EXIT_SUCCESS,
+    EXIT_ERROR,
     build_search_dirs,
     is_group_complete_and_self_contained,
     filter_by_pattern,
@@ -75,6 +77,9 @@ __all__ = [
     "find_all_light_directories",
     "check_calibration_for_light",
     "is_file_inside_tree",
+    # Exit codes
+    "EXIT_SUCCESS",
+    "EXIT_ERROR",
     # Main functions
     "build_search_dirs",
     "is_group_complete_and_self_contained",

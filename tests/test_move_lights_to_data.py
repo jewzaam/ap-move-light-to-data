@@ -8,6 +8,7 @@ import re
 import pytest
 from pathlib import Path
 from ap_move_light_to_data import move_lights_to_data
+from ap_move_light_to_data.move_lights_to_data import EXIT_ERROR
 
 
 class TestBuildSearchDirs:
@@ -456,7 +457,7 @@ class TestOrganizeIntoMovableTrees:
         assert len(result["incomplete_dirs"]) == 1
 
     def test_calibration_parent_of_mixed_lights(self, tmp_path):
-        """Calibration dir that is parent of mixed complete/incomplete lights excluded."""
+        """Calibration dir parent of mixed lights excluded."""
         source = tmp_path / "source"
         date1 = source / "M31" / "DATE1"
         filter_r = date1 / "FILTER_R"
@@ -911,7 +912,8 @@ class TestProcessLightDirectories:
         )
 
         assert result["moved"] == 1
-        # Verify cleanup was called with correct parameters (printStatus=False because quiet=True)
+        # Verify cleanup was called with correct parameters
+        # (printStatus=False because quiet=True)
         mock_cleanup.assert_called_once_with(
             str(source), dryrun=False, printStatus=False
         )
@@ -1502,7 +1504,7 @@ class TestMainValidation:
     """Tests for main() function validation logic."""
 
     def test_main_source_does_not_exist(self, tmp_path, mocker, capsys):
-        """Main returns error code 2 when source doesn't exist."""
+        """Main returns EXIT_ERROR when source doesn't exist."""
         source = tmp_path / "nonexistent"
         dest = tmp_path / "dest"
 
@@ -1514,13 +1516,13 @@ class TestMainValidation:
 
         exit_code = move_lights_to_data.main()
 
-        assert exit_code == 2
+        assert exit_code == EXIT_ERROR
         captured = capsys.readouterr()
         assert "ERROR" in captured.out
         assert "does not exist" in captured.out
 
     def test_main_source_is_file_not_directory(self, tmp_path, mocker, capsys):
-        """Main returns error code 2 when source is a file, not directory."""
+        """Main returns EXIT_ERROR when source is a file."""
         source = tmp_path / "file.txt"
         dest = tmp_path / "dest"
         source.touch()  # Create as file
@@ -1532,13 +1534,13 @@ class TestMainValidation:
 
         exit_code = move_lights_to_data.main()
 
-        assert exit_code == 2
+        assert exit_code == EXIT_ERROR
         captured = capsys.readouterr()
         assert "ERROR" in captured.out
         assert "not a directory" in captured.out
 
     def test_main_destination_exists_but_not_directory(self, tmp_path, mocker, capsys):
-        """Main returns error code 2 when destination exists but is a file."""
+        """Main returns EXIT_ERROR when dest exists but is a file."""
         source = tmp_path / "source"
         dest = tmp_path / "dest.txt"
         source.mkdir()
@@ -1551,7 +1553,7 @@ class TestMainValidation:
 
         exit_code = move_lights_to_data.main()
 
-        assert exit_code == 2
+        assert exit_code == EXIT_ERROR
         captured = capsys.readouterr()
         assert "ERROR" in captured.out
         assert "not a directory" in captured.out
