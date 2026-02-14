@@ -25,7 +25,7 @@ format: install-dev
 	$(PYTHON) -m black ap_move_light_to_data tests
 
 lint: install-dev
-	$(PYTHON) -m flake8 --max-line-length=88 --extend-ignore=E203,W503,E501,F401 ap_move_light_to_data tests
+	$(PYTHON) -m flake8 --max-line-length=88 --extend-ignore=E203,W503 ap_move_light_to_data tests
 
 typecheck: install-dev
 	$(PYTHON) -m mypy ap_move_light_to_data
