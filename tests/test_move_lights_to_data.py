@@ -1839,10 +1839,10 @@ class TestMainCLIArguments:
         # Verify exit code
         assert result == EXIT_SUCCESS
 
-        # CRITICAL: Verify the scale_darks parameter (7th positional arg)
+        # CRITICAL: Verify the scale_darks keyword argument
         # This catches args.scale_darks vs args.scale_dark attribute name mismatch
         call_args = mock_process.call_args
-        assert call_args.args[6] is True  # scale_darks parameter = True
+        assert call_args.kwargs["scale_darks"] is True
 
     def test_scale_dark_disabled(self, tmp_path, mocker):
         """Test --no-scale-dark flag sets parameter to False."""
@@ -1866,7 +1866,7 @@ class TestMainCLIArguments:
 
         assert result == EXIT_SUCCESS
         call_args = mock_process.call_args
-        assert call_args.args[6] is False  # scale_darks parameter = False
+        assert call_args.kwargs["scale_darks"] is False
 
     def test_scale_dark_default(self, tmp_path, mocker):
         """Test default value when --scale-dark flag omitted."""
@@ -1890,7 +1890,7 @@ class TestMainCLIArguments:
 
         assert result == EXIT_SUCCESS
         call_args = mock_process.call_args
-        assert call_args.args[6] is False  # scale_darks default = False
+        assert call_args.kwargs["scale_darks"] is False  # default
 
     def test_dryrun_flag(self, tmp_path, mocker):
         """Test --dryrun flag is correctly passed."""
@@ -1914,7 +1914,7 @@ class TestMainCLIArguments:
 
         assert result == EXIT_SUCCESS
         call_args = mock_process.call_args
-        assert call_args.args[4] is True  # dry_run parameter = True
+        assert call_args.kwargs["dry_run"] is True
 
     def test_quiet_flag(self, tmp_path, mocker):
         """Test --quiet flag is correctly passed."""
@@ -1940,7 +1940,7 @@ class TestMainCLIArguments:
 
         assert result == EXIT_SUCCESS
         call_args = mock_process.call_args
-        assert call_args.args[5] is True  # quiet parameter = True
+        assert call_args.kwargs["quiet"] is True
         # print_summary should not be called when quiet=True
         mock_summary.assert_not_called()
 
@@ -1966,7 +1966,7 @@ class TestMainCLIArguments:
 
         assert result == EXIT_SUCCESS
         call_args = mock_process.call_args
-        assert call_args.args[3] is True  # debug parameter = True
+        assert call_args.kwargs["debug"] is True
 
     def test_path_pattern_flag(self, tmp_path, mocker):
         """Test --path-pattern flag passes custom pattern."""
@@ -2028,10 +2028,10 @@ class TestMainCLIArguments:
 
         assert result == EXIT_SUCCESS
         call_args = mock_process.call_args
-        assert call_args.args[3] is False  # debug = False (default)
-        assert call_args.args[4] is True  # dry_run = True
-        assert call_args.args[5] is True  # quiet = True
-        assert call_args.args[6] is True  # scale_darks = True
+        assert call_args.kwargs["debug"] is False  # default
+        assert call_args.kwargs["dry_run"] is True
+        assert call_args.kwargs["quiet"] is True
+        assert call_args.kwargs["scale_darks"] is True
 
     def test_error_exit_code(self, tmp_path, mocker):
         """Test EXIT_ERROR when process returns errors."""

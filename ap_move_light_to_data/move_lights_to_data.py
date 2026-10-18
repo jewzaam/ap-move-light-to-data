@@ -187,6 +187,7 @@ def filter_by_pattern(light_dirs: List[str], path_pattern: Optional[str]) -> Lis
 def check_light_directories(
     light_dirs: List[str],
     source_dir: Path,
+    *,
     scale_darks: bool,
     debug: bool,
     quiet: bool,
@@ -426,6 +427,7 @@ def process_light_directories(
     source_dir: str,
     dest_dir: str,
     path_pattern: str,
+    *,
     debug: bool = False,
     dry_run: bool = False,
     quiet: bool = False,
@@ -528,7 +530,12 @@ def process_light_directories(
 
     # Step 3: CHECK
     status_map = check_light_directories(
-        filtered_light_dirs, source_path, scale_darks, debug, quiet, metadata_cache
+        filtered_light_dirs,
+        source_path,
+        scale_darks=scale_darks,
+        debug=debug,
+        quiet=quiet,
+        metadata_cache=metadata_cache,
     )
 
     # Step 4: ORGANIZE
@@ -756,10 +763,10 @@ def main() -> int:
         args.source_dir,
         args.dest_dir,
         args.path_pattern,
-        args.debug,
-        args.dryrun,
-        args.quiet,
-        args.scale_dark,
+        debug=args.debug,
+        dry_run=args.dryrun,
+        quiet=args.quiet,
+        scale_darks=args.scale_dark,
     )
 
     if not args.quiet:
