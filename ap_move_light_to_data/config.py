@@ -15,6 +15,7 @@ from ap_common.constants import (
     NORMALIZED_HEADER_EXPOSURESECONDS,
     NORMALIZED_HEADER_FILTER,
     DEFAULT_IMAGE_PATTERNS,
+    DIRECTORY_ACCEPT,
 )
 
 # Skip reason codes for structured error handling
@@ -64,7 +65,7 @@ ALL_REQUIRED_KEYWORDS = list(
 
 # Default path pattern to match accept directories
 # Matches paths containing an "accept" directory component
-DEFAULT_PATH_PATTERN = r".*[/\\]accept[/\\].*"
+DEFAULT_PATH_PATTERN = rf".*[/\\]{DIRECTORY_ACCEPT}[/\\].*"
 
 # Supported file extensions (regex patterns for file matching)
 # Use ap-common's DEFAULT_IMAGE_PATTERNS for all supported image types
